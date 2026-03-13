@@ -24,8 +24,9 @@ namespace DialogueNodeEditor.Windows
             DataContext = vm;
 
             vm.RequestWireRecalculation += OnRequestWireRecalculation;
-
             vm.History.AfterUndoRedo = () => Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, new Action(() => vm.RefreshAllConnections()));
+            vm.AfterOpen = () => Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, new Action(() => vm.RefreshAllConnections()));
+            vm.GetCursorPosition = () => Mouse.GetPosition(EditorCanvas);
 
             Loaded += (_, _) => vm.RefreshAllConnections();
         }
@@ -298,7 +299,7 @@ namespace DialogueNodeEditor.Windows
         /// Handles context menu "Add Node" option being clicked
         /// </summary>
         /// <param name="sender">Sender of the event</param>
-        /// <param name="e">Context menu event arguments</param>
+        /// <param name="e">Routed event arguments</param>
         private void ContextMenu_AddNode_Click(object sender, RoutedEventArgs e)
         {
             VM.AddDialogueNode(_contextMenuCanvasPos.X, _contextMenuCanvasPos.Y);
@@ -308,10 +309,30 @@ namespace DialogueNodeEditor.Windows
         /// Handles context menu "Delete Node" option being clicked
         /// </summary>
         /// <param name="sender">Sender of the event</param>
-        /// <param name="e">Context menu event arguments</param>
+        /// <param name="e">Routed event arguments</param>
         private void ContextMenu_DeleteSelected_Click(object sender, RoutedEventArgs e)
         {
             VM.DeleteSelectedNodes();
+        }
+
+        /// <summary>
+        /// Handles context menu "Copy Node(s)" option being clicked
+        /// </summary>
+        /// <param name="sender">Sender of the event</param>
+        /// <param name="e">Routed event arguments</param>
+        private void ContextMenu_CopyNode_Click(object sender, RoutedEventArgs e)
+        {
+            VM.CopySelectedNodes();
+        }
+
+        /// <summary>
+        /// Handles context menu "Paste Node(s)" option being clicked
+        /// </summary>
+        /// <param name="sender">Sender of the event</param>
+        /// <param name="e">Routed event arguments</param>
+        private void ContextMenu_PasteNode_Click(object sender, RoutedEventArgs e)
+        {
+            VM.PasteNodes();
         }
 
         #endregion // Canvas Handlers
@@ -535,54 +556,6 @@ namespace DialogueNodeEditor.Windows
         /// <param name="e">Key event arguments</param>
         private void Window_KeyDown(object sender, KeyEventArgs e)
         {
-            bool hasCtrlKeyModifier = Keyboard.Modifiers.HasFlag(ModifierKeys.Control);
-            bool hasShiftKeyModifier = Keyboard.Modifiers.HasFlag(ModifierKeys.Shift);
-
-            if (e.Key == Key.Escape) // Escape
-            {
-                VM.CancelNodeConnection();
-                HidePreviewWire();
-            }
-            else if (e.Key == Key.Delete) // Delete
-            {
-                VM.DeleteSelectedNodes();
-            }
-            else if (hasCtrlKeyModifier && e.Key == Key.Z && !hasShiftKeyModifier) // Ctrl + Z (Undo)
-            {
-                VM.History.UndoCommand.Execute(null);
-                e.Handled = true;
-            }
-            else if (hasCtrlKeyModifier && (e.Key == Key.Y || (e.Key == Key.Z && hasShiftKeyModifier))) // Ctrl + Y or Ctrl + Shift + Z (Redo)
-            {
-                VM.History.RedoCommand.Execute(null);
-                e.Handled = true;
-            }
-            else if (hasCtrlKeyModifier && e.Key == Key.S && !hasShiftKeyModifier) // Ctrl + S (Save)
-            {
-                VM.Save();
-                e.Handled = true;
-            }
-            else if (hasCtrlKeyModifier && e.Key == Key.S && hasShiftKeyModifier) // Ctrl + Shift + S (Save As)
-            {
-                VM.SaveAs();
-                e.Handled = true;
-            }
-            else if (hasCtrlKeyModifier && e.Key == Key.E && hasShiftKeyModifier) // Ctrl + E (Export)
-            {
-                VM.Export();
-                e.Handled = true;
-            }
-            else if (hasCtrlKeyModifier && e.Key == Key.O) // Ctrl + O (Open)
-            {
-                if (VM.Open())
-                {
-                    // Connection geometry depends on rendered node positions, so defer the recalculation 
-                    Dispatcher.BeginInvoke(
-                        System.Windows.Threading.DispatcherPriority.Loaded,
-                        new Action(() => VM.RefreshAllConnections()));
-                }
-                e.Handled = true;
-            }
         }
 
         #endregion // Key Event Handlers

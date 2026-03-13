@@ -93,6 +93,9 @@
                 <Rectangle Style="{StaticResource SeparatorStyle}"/>
 
                 <local:ShortcutRow Keys="Right-click canvas" Description="Open context menu (add / delete node)"/>
+                <local:ShortcutRow Keys="Ctrl + A" Description="Add node at mouse position"/>
+                <local:ShortcutRow Keys="Ctrl + C" Description="Copy selected nodes"/>
+                <local:ShortcutRow Keys="Ctrl + V" Description="Paste copied nodes"/>
                 <local:ShortcutRow Keys="Drag handle"        Description="Move node"/>
                 <local:ShortcutRow Keys="Left-click node"    Description="Select node"/>
                 <local:ShortcutRow Keys="Left-click canvas"  Description="Deselect all"/>
@@ -103,7 +106,6 @@
 
                 <local:ShortcutRow Keys="Click OUT connector" Description="Begin drawing a connection"/>
                 <local:ShortcutRow Keys="Click IN connector"  Description="Complete the connection"/>
-                <local:ShortcutRow Keys="Esc"                 Description="Cancel connection in progress"/>
                 <local:ShortcutRow Keys="Left-click wire"    Description="Delete connection"/>
 
                 <!-- Canvas -->

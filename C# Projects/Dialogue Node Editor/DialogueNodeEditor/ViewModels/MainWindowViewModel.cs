@@ -5,6 +5,7 @@ using DialogueNodeEditor.Services;
 using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Threading;
 
 namespace DialogueNodeEditor.ViewModels
 {
@@ -18,10 +19,28 @@ namespace DialogueNodeEditor.ViewModels
         public MainWindowViewModel()
         {
             History = new UndoRedoService();
-            
-            // Seed two starter nodes
-            AddDialogueNode(80, 120, "Greeting", "Guard");
-            AddDialogueNode(460, 120, "PlayerResponse");
+
+            SaveCommand = new RelayCommand(_ => Save());
+            SaveAsCommand = new RelayCommand(_ => SaveAs());
+            ExportCommand = new RelayCommand(_ => Export());
+            OpenCommand = new RelayCommand(_ => Open());
+            DeleteSelectedNodesCommand = new RelayCommand(_ => DeleteSelectedNodes());
+            OpenDialogueFileCommand = new RelayCommand(_ =>
+            {
+                if (Open()) 
+                {
+                    AfterOpen?.Invoke();
+                }
+            });
+
+            AddNodeCommand = new RelayCommand(_ =>
+            {
+                Point pos = GetCursorPosition?.Invoke() ?? new Point(80, 120);
+                AddDialogueNode(pos.X, pos.Y);
+            });
+
+            CopyCommand = new RelayCommand(_ => CopySelectedNodes());
+            PasteCommand = new RelayCommand(_ => PasteNodes(), _ => CanPaste);
         }
 
         #endregion // Init / Deinit
@@ -33,7 +52,12 @@ namespace DialogueNodeEditor.ViewModels
 
         /// <summary>List of all dialogue nodes</summary>
         public ObservableCollection<DialogueNodeViewModel> Nodes { get; } = new();
-        
+
+        /// <summary>
+        /// Snapshot of the nodes most recently copied
+        /// </summary>
+        private List<DialogueNode> _nodeCopyClipboard = new();
+
         /// <summary>List of all connection between nodes</summary>
         public ObservableCollection<DialogueConnectionViewModel> Connections { get; } = new();
 
@@ -67,6 +91,9 @@ namespace DialogueNodeEditor.ViewModels
         /// <summary>Whether or not any nodes are selected</summary>
         public bool IsAnyNodeSelected => Nodes.Any(n => n.IsSelected);
 
+        /// <summary>Whether or not there are nodes copied</summary>
+        public bool CanPaste => _nodeCopyClipboard.Count > 0;
+
         /// <summary>The preview line/wire connection start position</summary>
         public Point PreviewStartPoint { get; private set; }
 
@@ -96,7 +123,48 @@ namespace DialogueNodeEditor.ViewModels
             ? $"Dialogue Node Editor — {System.IO.Path.GetFileName(CurrentFilePath)}"
             : "Dialogue Node Editor — Unsaved";
 
+        /// <summary>
+        /// Called by the view after a graph is successfully opened
+        /// </summary>
+        public Action? AfterOpen { get; set; }
+
+        /// <summary>
+        /// Supplied by the view so AddNodeCommand can get the canvas-relative cursor position without the VM holding a reference to any UI element.
+        /// </summary>
+        public Func<Point>? GetCursorPosition { get; set; }
+
         #endregion // Member Variables
+
+        #region Commands
+
+        /// <summary>Ctrl+S — save</summary>
+        public RelayCommand SaveCommand { get; }
+
+        /// <summary>Ctrl+Shift+S — save as</summary>
+        public RelayCommand SaveAsCommand { get; }
+
+        /// <summary>Ctrl+E — export</summary>
+        public RelayCommand ExportCommand { get; }
+
+        /// <summary>Ctrl+O — open</summary>
+        public RelayCommand OpenCommand { get; }
+
+        /// <summary>Delete — delete selected nodes</summary>
+        public RelayCommand DeleteSelectedNodesCommand { get; }
+
+        /// <summary>Ctrl+C — copy selected nodes</summary>
+        public RelayCommand CopyCommand { get; }
+
+        /// <summary>Ctrl+V — paste nodes</summary>
+        public RelayCommand PasteCommand { get; }
+
+        /// <summary>Ctrl+O — open dialogue file</summary>
+        public RelayCommand OpenDialogueFileCommand { get; }
+
+        /// <summary>Ctrl+A — add node</summary>
+        public RelayCommand AddNodeCommand { get; }
+
+        #endregion // Commands
 
         #region Events
 
@@ -136,6 +204,63 @@ namespace DialogueNodeEditor.ViewModels
             };
 
             History.Record(new AddNodeCommand(this, new DialogueNodeViewModel(model)));
+        }
+
+        /// <summary>
+        /// Copies all currently selected nodes to the internal clipboard.
+        /// Does nothing if no nodes are selected.
+        /// </summary>
+        public void CopySelectedNodes()
+        {
+            List<DialogueNodeViewModel> selected = Nodes.Where(n => n.IsSelected).ToList();
+            
+            if (selected.Count == 0) 
+            {
+                return;
+            }
+
+            // Deep-copy the models
+            _nodeCopyClipboard = selected.Select(n => new DialogueNode
+            {
+                Id = Guid.NewGuid(),
+                DialogueId = n.Model.DialogueId,
+                Owner = n.Model.Owner,
+                DialogueTranslations = new Dictionary<string, string>(n.Model.DialogueTranslations),
+                Notes = n.Model.Notes,
+                X = n.Model.X,
+                Y = n.Model.Y,
+            }).ToList();
+
+            OnPropertyChanged(nameof(CanPaste));
+        }
+
+        /// <summary>
+        /// Pastes the clipboard nodes onto the canvas
+        /// </summary>
+        public void PasteNodes()
+        {
+            if (_nodeCopyClipboard.Count == 0)
+            {
+                return;
+            }
+
+            const double offset = 24;
+
+            List<DialogueNodeViewModel> pasted = _nodeCopyClipboard.Select(src => new DialogueNodeViewModel(
+                new DialogueNode
+                {
+                    Id = Guid.NewGuid(),
+                    DialogueId = src.DialogueId,
+                    Owner = src.Owner,
+                    DialogueTranslations = new Dictionary<string, string>(src.DialogueTranslations),
+                    Notes = src.Notes,
+                    X = src.X + offset,
+                    Y = src.Y + offset,
+                }
+            )).ToList();
+
+            _nodeCounter += pasted.Count;
+            History.Record(new PasteNodesCommand(this, pasted));
         }
 
         /// <summary>

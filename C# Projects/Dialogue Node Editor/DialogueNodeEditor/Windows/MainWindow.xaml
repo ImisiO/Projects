@@ -13,6 +13,20 @@
         Background="#1A1A1A"
         KeyDown="Window_KeyDown">
 
+    <Window.InputBindings>
+        <KeyBinding Modifiers="Control"         Key="Z"      Command="{Binding History.UndoCommand}"/>
+        <KeyBinding Modifiers="Control"         Key="Y"      Command="{Binding History.RedoCommand}"/>
+        <KeyBinding Modifiers="Control+Shift"   Key="Z"      Command="{Binding History.RedoCommand}"/>
+        <KeyBinding Modifiers="Control"         Key="S"      Command="{Binding SaveCommand}"/>
+        <KeyBinding Modifiers="Control+Shift"   Key="S"      Command="{Binding SaveAsCommand}"/>
+        <KeyBinding Modifiers="Control"         Key="E"      Command="{Binding ExportCommand}"/>
+        <KeyBinding Modifiers="Control"         Key="C"      Command="{Binding CopyCommand}"/>
+        <KeyBinding Modifiers="Control"         Key="V"      Command="{Binding PasteCommand}"/>
+        <KeyBinding                             Key="Delete" Command="{Binding DeleteSelectedNodesCommand}"/>
+        <KeyBinding Modifiers="Control"         Key="O"      Command="{Binding OpenDialogueFileCommand}"/>
+        <KeyBinding Modifiers="Control"         Key="A"      Command="{Binding AddNodeCommand}"/>
+    </Window.InputBindings>
+
     <Window.Resources>
 
         <!-- Toolbar icon button (save, undo, redo) -->
@@ -373,7 +387,7 @@
               MouseUp="Viewport_MouseUp">
 
             <Canvas x:Name="EditorCanvas"
-                    Width="4000" Height="3000"
+                    Width="40000000" Height="30000000"
                     HorizontalAlignment="Left"
                     VerticalAlignment="Top"
                     Focusable ="True"
@@ -388,10 +402,19 @@
                         <MenuItem Header="＋  Add Node"
                                   Style="{StaticResource ContextMenuItemStyle}"
                                   Click="ContextMenu_AddNode_Click"/>
-                        <MenuItem Header="✕  Delete Selected"
+                        <MenuItem Header="🁫  Copy Node(s)"
                                   Style="{StaticResource ContextMenuItemStyle}"
-                                  Click="ContextMenu_DeleteSelected_Click"
+                                  Click="ContextMenu_CopyNode_Click"
                                   IsEnabled="{Binding IsAnyNodeSelected}"/>
+                        <MenuItem Header="✐  Paste Node(s)"
+                                  Style="{StaticResource ContextMenuItemStyle}"
+                                  Click="ContextMenu_PasteNode_Click"
+                                  IsEnabled="{Binding CanPaste}"/>
+                        <MenuItem Header="✕  Delete Selected"
+                                Style="{StaticResource ContextMenuItemStyle}"
+                                Click="ContextMenu_DeleteSelected_Click"
+                                IsEnabled="{Binding IsAnyNodeSelected}"/>
+
                     </ContextMenu>
                 </Canvas.ContextMenu>
 
