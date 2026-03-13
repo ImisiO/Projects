@@ -116,7 +116,7 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Map Area|Meshes|Terrain")
 	UStaticMeshComponent* TerrainMeshComp{nullptr};
 
-	UPROPERTY(EditAnywhere, Category = "Map Area|Meshes|Buildings")
+	UPROPERTY(EditAnywhere, Category = "Map Area|Meshes|Accent")
 	UStaticMeshComponent* AccentMeshComp{nullptr};
 
 	UPROPERTY()

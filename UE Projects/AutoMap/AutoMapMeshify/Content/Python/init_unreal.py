@@ -216,6 +216,9 @@ def BuildStaticMeshImportOptions():
     options.set_editor_property('import_textures', False)
     options.set_editor_property('import_materials', False)
     options.set_editor_property('import_as_skeletal', False)
+    options.set_editor_property('automated_import_should_detect_type', False)
+    options.static_mesh_import_data.set_editor_property('convert_scene', False)
+    options.static_mesh_import_data.set_editor_property('force_front_x_axis', True)
     
     options.static_mesh_import_data.set_editor_property('normal_import_method', unreal.FBXNormalImportMethod.FBXNIM_COMPUTE_NORMALS)
     options.static_mesh_import_data.set_editor_property('auto_generate_collision', True)

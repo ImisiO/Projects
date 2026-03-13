@@ -277,63 +277,54 @@ void AMapArea::AlignAccentMesh()
 {
 	TArray<AActor*> TerrainMapActors{};
 	TArray<AActor*> AccentMapActors{};
-
 	GetTaggedMapElements(TerrainMapActors, AccentMapActors);
 
-	// Calculate average tranform (position wise) of each terrain map element
-	FTransform TerrainRootTransform(FTransform::Identity);
-	if (TerrainMapActors.Num() == 1)
+	if (TerrainMapActors.IsEmpty() || AccentMapActors.IsEmpty())
 	{
-		TerrainRootTransform = TerrainMapActors[0]->GetTransform();
+		UE_LOG(LogTemp, Warning, TEXT("MapArea: Cannot align accent mesh - missing tagged actors for zone %s"), *ZoneTag.ToString());
+		return;
 	}
-	else
-	{
-		// multiple actors use the average of their origins, with Z being the min of all origins. Rotation is identity for simplicity
-		FVector Location(FVector::ZeroVector);
 
-		double MinZ = DBL_MAX;
-
-		for (AActor* Actor : TerrainMapActors)
+	auto ComputeGroupOrigin = [](const TArray<AActor*>& Actors) -> FVector
 		{
-			FTransform ActorTransform = Actor->GetTransform();
-			Location += ActorTransform.GetLocation();
-			MinZ = FMath::Min(ActorTransform.GetLocation().Z, MinZ);
-		}
-		Location /= (float)TerrainMapActors.Num();
-		Location.Z = MinZ;
+			if (Actors.Num() == 1)
+			{
+				return Actors[0]->GetActorLocation();
+			}
 
-		TerrainRootTransform.SetLocation(Location);
-	}
+			FVector AccumulatedLocation = FVector::ZeroVector;
+			double MinZ = DBL_MAX;
 
-	// Calculate average tranform (position wise) of each accent map element
-	FTransform AccentRootTransform(FTransform::Identity);
-	if (AccentMapActors.Num() == 1)
-	{
-		AccentRootTransform = AccentMapActors[0]->GetTransform();
-	}
-	else
-	{
-		// multiple actors use the average of their origins, with Z being the min of all origins. Rotation is identity for simplicity
-		FVector Location(FVector::ZeroVector);
+			for (const AActor* Actor : Actors)
+			{
+				FVector Loc = Actor->GetActorLocation();
+				AccumulatedLocation += Loc;
+				MinZ = FMath::Min(Loc.Z, MinZ);
+			}
 
-		double MinZ = DBL_MAX;
+			AccumulatedLocation /= static_cast<double>(Actors.Num());
+			AccumulatedLocation.Z = MinZ;
+			return AccumulatedLocation;
+		};
 
-		for (AActor* Actor : AccentMapActors)
-		{
-			FTransform ActorTransform = Actor->GetTransform();
-			Location += ActorTransform.GetLocation();
-			MinZ = FMath::Min(ActorTransform.GetLocation().Z, MinZ);
-		}
-		Location /= (float)AccentMapActors.Num();
-		Location.Z = MinZ;
+	FVector TerrainGroupOrigin = ComputeGroupOrigin(TerrainMapActors);
+	FVector AccentGroupOrigin = ComputeGroupOrigin(AccentMapActors);
 
-		AccentRootTransform.SetLocation(Location);
-	}
+	// Game-world offset between the two groups
+	FVector GameWorldOffset = AccentGroupOrigin - TerrainGroupOrigin;
 
-	// Calculate accent mesh position relative to the terrain mesh's position
-	FVector AccentRelativePosition = AccentRootTransform.GetLocation() - TerrainRootTransform.GetLocation();
+	FVector TerrainMeshRelativeOffset = TerrainMeshComp ? TerrainMeshComp->GetRelativeLocation() : FVector::ZeroVector;
+	FVector FinalAccentRelativePosition = TerrainMeshRelativeOffset + GameWorldOffset;
 
-	SetAccentRelativePosition(AccentRelativePosition);
+	SetAccentRelativePosition(FinalAccentRelativePosition);
+
+	UE_LOG(LogTemp, Display,
+		TEXT("MapArea: Aligned accent mesh. TerrainOrigin=%s AccentOrigin=%s GameWorldDelta=%s TerrainMeshOffset=%s Final=%s"),
+		*TerrainGroupOrigin.ToString(),
+		*AccentGroupOrigin.ToString(),
+		*GameWorldOffset.ToString(),
+		*TerrainMeshRelativeOffset.ToString(),
+		*FinalAccentRelativePosition.ToString());
 }
 
 void AMapArea::AlignMapAreas()
@@ -358,7 +349,7 @@ void AMapArea::AlignMapAreas()
 			// Checking to see if map area is starting zone map area
 			if (MapArea)
 			{
-				FGameplayTag StartingMapAreaZoneTag = FGameplayTag::RequestGameplayTag(FName(TEXT("MapArea.MapZone.1")));
+				FGameplayTag StartingMapAreaZoneTag = FGameplayTag::RequestGameplayTag(FName(TEXT("AutoMapGameplay.MapZone_1")));
 
 				FGameplayTag MapAreaZoneTag;
 				MapArea->GetZoneTag(MapAreaZoneTag);
