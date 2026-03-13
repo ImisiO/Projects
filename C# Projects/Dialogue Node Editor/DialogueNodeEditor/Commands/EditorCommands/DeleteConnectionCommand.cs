@@ -44,7 +44,6 @@ namespace DialogueNodeEditor.Commands.EditorCommands
         public void Undo()
         {
             _vm.Connections.Add(_conn);
-            _vm.RefreshAllConnections();
         }
     }
 }

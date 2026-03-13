@@ -463,6 +463,7 @@
                     <ItemsControl.ItemTemplate>
                         <DataTemplate DataType="{x:Type vm:DialogueConnectionViewModel}">
                             <Path Data="{Binding Geometry}"
+                                  Focusable="False"
                                   Stroke="#CCCCCC" StrokeThickness="2.5"
                                   StrokeStartLineCap="Round" StrokeEndLineCap="Round"
                                   Cursor="Hand" ToolTip="Left-click to delete"
